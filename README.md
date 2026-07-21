@@ -5,7 +5,7 @@
 1. `ida_cstest2026_behavior_auditor.py`：IDA Pro IDAPython 自动化静态识别插件源码。
 2. `cs-test-2026_ida_audit_expected_result.md`：针对 cs-test-2026 的 Markdown 预期输出样例。
 3. `cs-test-2026_ida_audit_expected_result.json`：针对 cs-test-2026 的 JSON 预期输出样例。
-4. `2026春《基于TCP流重组的软件行为分析》课程设计源代码说明-IDA插件-信安2304-U202310678-唐辰旸.docx`：源代码说明文件。
+4. `2026春《基于TCP流重组的软件行为分析》课程设计源代码说明`：源代码说明文件。
 
 ## 运行环境
 
