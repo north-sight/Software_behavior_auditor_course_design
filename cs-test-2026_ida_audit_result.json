@@ -1,0 +1,114 @@
+{
+  "sample": "cs-test-2026",
+  "expected": {
+    "vulnerability": 4,
+    "malicious": 7
+  },
+  "notes": [
+    "函数覆盖完整：main、5 个 Mal_func 和 4 个 Vul_func 均存在。",
+    "敏感导入函数覆盖 remove、rename、chmod、system、fork、strncpy、malloc、free、aligned_alloc、mprotect 等关键调用。",
+    "关键字符串覆盖完整，包含认证日志、system.sh、hustlogo.png、nc 监听命令、setenforce 0、youarethebest、UAF 和整数溢出提示。",
+    "计数校验通过：4 个漏洞 + 7 个恶意代码行为。"
+  ],
+  "findings": [
+    {
+      "category": "vulnerability",
+      "title": "漏洞1：strncpy 栈缓冲区溢出",
+      "function": "Vul_func1",
+      "address": "0x00001776",
+      "evidence": "strncpy(desta, dest + 20, dest[50] + dest[70])，目的缓冲区为 24 字节栈数组，长度来自输入偏移 0x32 与 0x46。",
+      "trigger": "共同门槛；避开前置恶意分支；dest[0x12] > dest[0x13]；dest[0x32] + dest[0x46] > 24。",
+      "confidence": "high"
+    },
+    {
+      "category": "vulnerability",
+      "title": "漏洞2：Double Free 双重释放",
+      "function": "Vul_func2",
+      "address": "0x000017E5",
+      "evidence": "同一 ptr 在 0x17CA 被释放后，在 dest[10] > 0x32 条件下于 0x17E5 再次释放。",
+      "trigger": "共同门槛；dest[0x1C] < dest[0x1D]；dest[10] > 0x32；malloc(0x0A) 成功。",
+      "confidence": "high"
+    },
+    {
+      "category": "vulnerability",
+      "title": "漏洞3：Use After Free 使用后释放",
+      "function": "Vul_func3",
+      "address": "0x00001896",
+      "evidence": "0x1883 free(addr) 后继续将 addr 传入 mprotect，并在成功路径继续 printf(addr)。",
+      "trigger": "共同门槛；避开前置分支；dest[0x26] > dest[0x27]。",
+      "confidence": "high"
+    },
+    {
+      "category": "vulnerability",
+      "title": "漏洞4：整数溢出导致堆越界写",
+      "function": "Vul_func45",
+      "address": "0x00001973",
+      "evidence": "count=0x20000001 左移 3 位后在 32 位下截断为 8，malloc(8) 后执行 ptr - 0x10000000 越界写。",
+      "trigger": "共同门槛；dest[0x30] == dest[0x31]；dest[0x32] == 0x21。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码1：删除认证日志",
+      "function": "Mal_func1",
+      "address": "0x0000152F",
+      "evidence": "remove(\"/var/log/auth.log\") 删除 Linux 认证日志。",
+      "trigger": "共同门槛；dest[1] == 0x42；dest[2] == 0x43。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码2：系统文件重命名",
+      "function": "Mal_func2",
+      "address": "0x00001564",
+      "evidence": "rename(\"/home/cs-test/Test/hustlogo.png\", \"system.sh\") 将图片伪装文件改名为脚本。",
+      "trigger": "共同门槛；避开 Mal_func1；dest[2] == 0x38。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码3：修改脚本权限",
+      "function": "Mal_func2",
+      "address": "0x00001583",
+      "evidence": "chmod(\"system.sh\", 0x1FF)，0x1FF 对应 0777。",
+      "trigger": "Mal_func2 中 rename 成功后继续执行 chmod。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码4：执行本地脚本",
+      "function": "Mal_func2",
+      "address": "0x000015AB",
+      "evidence": "system(\"./system.sh\") 执行当前目录脚本。",
+      "trigger": "Mal_func2 中 rename 与 chmod 均成功后触发。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码5：开启 nc 后门监听",
+      "function": "Mal_func3",
+      "address": "0x0000164A",
+      "evidence": "system(\"nc -l -p 54321 > hustlogo.png\") 监听端口并写入文件。",
+      "trigger": "共同门槛；避开前置分支；dest[0x0F] == 0x58。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码6：fork 型进程资源消耗",
+      "function": "Mal_func4",
+      "address": "0x000016B8",
+      "evidence": "while(fork()) 循环创建子进程，未发现 wait/waitpid 回收逻辑。",
+      "trigger": "共同门槛；避开前置分支；dest[0x0D] == 0x59。",
+      "confidence": "high"
+    },
+    {
+      "category": "malicious",
+      "title": "恶意代码7：关闭 SELinux 强制访问控制",
+      "function": "Mal_func5",
+      "address": "0x00001726",
+      "evidence": "system(\"setenforce 0\") 尝试关闭 SELinux enforcing 模式。",
+      "trigger": "共同门槛；避开前置分支；gcd(dest[0x19], dest[0x34]) == 0x47。",
+      "confidence": "high"
+    }
+  ]
+}
